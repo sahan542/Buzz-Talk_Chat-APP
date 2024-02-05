@@ -1,6 +1,7 @@
-import React from 'react'
-import Register from './Register'
+import React, { useContext } from 'react'
 import axios from 'axios'
+import { UserContextProvider } from './UserContext';
+import Routes from './Routes';
 
 
 function App() {
@@ -10,7 +11,10 @@ function App() {
 
   return (
     <>
-      <Register />
+      <UserContextProvider>
+          <Routes />
+      </UserContextProvider>
+      
     </>
   )
 }
