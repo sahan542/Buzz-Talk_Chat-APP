@@ -1,37 +1,56 @@
 import { useEffect, useState } from "react"
 
 export default function Chat() {
-    const [ws, setWs] = useState(null);
+    const [ws,setWs] = useState(null);
+    const [onlinePeople, setOnlinePeople] = useState({});
+
     useEffect(() => {
         const ws = new WebSocket('ws://localhost:4040');
         setWs(ws);
-        ws.addEventListener('message', handleMessage)
+        ws.addEventListener('message', handleMessage);
     }, []);
+
+    function showOnlinePeople(peopleArray){
+        const people = {};
+        peopleArray.forEach(({userId, username}) => {
+            people[userId] = username;
+        });
+        setOnlinePeople(people);
+    }
 
     function handleMessage(ev) {
         const messageData = JSON.parse(ev.data);
-        console.log(messageData);
-
-    }
+        console.log({ev,messageData});
+        if ('online' in messageData) {
+          showOnlinePeople(messageData.online);
+        }
+      }
 
     return (
         <div className="flex h-screen">
-            <div className="bg-white w-1/3">Contacts</div>
-            <div className="flex flex-col bg-blue-50 w-2/3 p-2">
-                <div className="flex-grow">Messages with selected person</div>
-                <div className="flex gap-2 mx-2">
-                    <input 
-                        type="text" 
-                        placeholder="Type your message here" 
-                        className="bg-white flex-grow border rounded-sm p-2" 
-                    />
-                    <button className="bg-blue-500 p-2 text-white rounded-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-                        </svg>
-                    </button>
-                </div>
+    <div className="bg-white w-1/3 p-2">
+        <div className="text-blue-600 font-bold flex gap-1">Buzz-Chat</div>
+        {Object.keys(onlinePeople).map((userId, index) => (
+            <div className="border-b border-gray-100 py-2" key={index}>
+                {onlinePeople[userId]}
             </div>
+        ))}
+    </div>
+    <div className="flex flex-col bg-blue-50 w-2/3 p-2">
+        <div className="flex-grow">Messages with selected person</div>
+        <div className="flex gap-2 mx-2">
+            <input 
+                type="text" 
+                placeholder="Type your message here" 
+                className="bg-white flex-grow border rounded-sm p-2" 
+            />
+            <button className="bg-blue-500 p-2 text-white rounded-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                </svg>
+            </button>
         </div>
+    </div>
+</div>
     )
 }
