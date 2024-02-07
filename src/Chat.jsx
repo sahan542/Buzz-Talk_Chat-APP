@@ -1,7 +1,9 @@
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import Avatar from "./Avatar";
 import Logo from "./Logo";
 import { UserContext } from "./UserContext";
+import uniqBy from 'lodash/uniqBy';
+
 
 export default function Chat() {
     const [ws,setWs] = useState(null);
@@ -9,6 +11,8 @@ export default function Chat() {
     const [selecteduserId, setSelectedUserId] = useState(null);
     const {username, id} = useContext(UserContext);
     const [newMessageText, setNewMessageText] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const divUnderMessages = useRef();
 
     useEffect(() => {
         const ws = new WebSocket('ws://localhost:4040');
@@ -29,21 +33,33 @@ export default function Chat() {
         console.log({ev,messageData});
         if ('online' in messageData) {
           showOnlinePeople(messageData.online);
+        } else if ('text' in messageData) {
+            setMessages(prev => ([...prev, {...messageData}]));
         }
       }
 
       function sendMessage(ev) {
         ev.preventDefault();
         ws.send(JSON.stringify({
-            message: {
-                recipient: selecteduserId,
-                text: newMessageText,
-            }
+            recipient: selecteduserId,
+            text: newMessageText,
         }));
+        setNewMessageText('');
+        setMessages(prev => ([...prev,{
+            text: newMessageText,
+            sender:id,
+            recipient: selecteduserId,
+            id: Date.now(),
+            }]));
+            const div = divUnderMessages.current;
+            console.log(div);
+            div.scrollIntoView({behavior:'smooth', block:'end'});
       }
 
       const onlinePeopleExcluOurUser = {...onlinePeople};
       delete onlinePeopleExcluOurUser[id];
+
+      const messagesWithoutDupes = uniqBy(messages, '_id');
 
     
       return (
@@ -69,7 +85,30 @@ export default function Chat() {
                         <div className="text-gray-400">&larr; Select a person from sidebar</div>
                     </div>
                 )}
-            </div>
+
+            {!!selecteduserId && (
+                <div className="mb-4">
+                <div className="relative h-full">
+                    <div className="overflow-y-scroll absolute inset-0">
+                    {messagesWithoutDupes.map(message => (
+                        <div key={message._id} className={(message.sender === id ? 'text-right': 'text-left')}>
+                            <div className={"text-left inline-block p-2 my-2 rounded-md text-sm" +(message.sender === id ? 'bg-blue-500 text-white':'bg-white text-gray-500')}>
+                                sender: {message.sender}<br/>
+                                my id: {id}<br/>
+                                {message.text}
+                            </div>
+                        </div>
+                    ))}
+                    <div className="h-12" ref={divUnderMessages}></div>
+                </div>
+                </div>
+                </div>
+            )}
+
+        </div>
+
+
+
             {!!selecteduserId && (
                 <form className="flex gap-2 mx-2" onSubmit={sendMessage}>
                 <input
