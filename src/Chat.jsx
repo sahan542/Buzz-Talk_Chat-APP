@@ -3,11 +3,13 @@ import Avatar from "./Avatar";
 import Logo from "./Logo";
 import { UserContext } from "./UserContext";
 import uniqBy from 'lodash/uniqBy';
+import axios from "axios";
 
 
 export default function Chat() {
     const [ws,setWs] = useState(null);
     const [onlinePeople, setOnlinePeople] = useState({});
+    const [offLinePeople, setOffLinePeople] = useState({});
     const [selecteduserId, setSelectedUserId] = useState(null);
     const {username, id} = useContext(UserContext);
     const [newMessageText, setNewMessageText] = useState(null);
@@ -15,10 +17,21 @@ export default function Chat() {
     const divUnderMessages = useRef();
 
     useEffect(() => {
+        connectToWs();
+    }, []);
+
+    function connectToWs(){
         const ws = new WebSocket('ws://localhost:4040');
         setWs(ws);
         ws.addEventListener('message', handleMessage);
-    }, []);
+        ws.addEventListener('close', () => {
+            setTimeout(() => {
+                console.log('Disconnected. Trying to reconnect.');
+                connectToWs();
+            }, 1000);
+        });
+    }
+        
 
     function showOnlinePeople(peopleArray){
         const people = {};
@@ -49,12 +62,39 @@ export default function Chat() {
             text: newMessageText,
             sender:id,
             recipient: selecteduserId,
-            id: Date.now(),
+            _id: Date.now(),
             }]));
-            const div = divUnderMessages.current;
-            console.log(div);
-            div.scrollIntoView({behavior:'smooth', block:'end'});
       }
+
+      useEffect(() => {
+        const div = divUnderMessages.current;
+        if (div){
+            div.scrollIntoView({behavior:'smooth', block:'end'});
+        }
+      }, [messages]);
+
+      useEffect(() => {
+            axios.get('/people').then(res => {
+                const offLinePeopleArr = res.data
+                    .filter(p => p._id !== id)
+                    .filter(p => Object.keys(onlinePeople).includes(p._id));
+                const offLinePeople = {};
+                offLinePeople.forEach(p => {
+                    offLinePeople[p._id] = p;
+                });
+                console.log({offLinePeople,offLinePeopleArr});
+                setOffLinePeople(offLinePeople);
+            });
+      }, [onlinePeople]);
+
+      useEffect(() => {
+        if(selecteduserId){
+            axios.get('/messages/'+selecteduserId).then(res => {
+                console.log(res.data);
+                setMessages(res.data);
+            });
+        }
+      }, [selecteduserId]);
 
       const onlinePeopleExcluOurUser = {...onlinePeople};
       delete onlinePeopleExcluOurUser[id];
@@ -72,7 +112,7 @@ export default function Chat() {
                     <div className="w-1 bg-blue-500 h-12 rounded-r-md"></div>
                 )}
                     <div className="flex gap-2 py-2 pl-4 items-center">
-                    <Avatar username={onlinePeople[userId]} userId={userId} />
+                    <Avatar online={true} username={onlinePeople[userId]} userId={userId} />
                     <span className="text-gray-800">{onlinePeople[userId]}</span>
                     </div>
               </div>
@@ -89,7 +129,7 @@ export default function Chat() {
             {!!selecteduserId && (
                 <div className="mb-4">
                 <div className="relative h-full">
-                    <div className="overflow-y-scroll absolute inset-0">
+                    <div className="overflow-y-scroll absolute top-0 left-0 right-0 bottom-2">
                     {messagesWithoutDupes.map(message => (
                         <div key={message._id} className={(message.sender === id ? 'text-right': 'text-left')}>
                             <div className={"text-left inline-block p-2 my-2 rounded-md text-sm" +(message.sender === id ? 'bg-blue-500 text-white':'bg-white text-gray-500')}>
@@ -129,4 +169,5 @@ export default function Chat() {
           </div>
         </div>
       );
-}
+
+            }
