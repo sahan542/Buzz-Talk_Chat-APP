@@ -4,6 +4,7 @@ import Logo from "./Logo";
 import { UserContext } from "./UserContext";
 import uniqBy from 'lodash/uniqBy';
 import axios from "axios";
+import Contact from "./Contact";
 
 
 export default function Chat() {
@@ -96,27 +97,45 @@ export default function Chat() {
         }
       }, [selecteduserId]);
 
-      const onlinePeopleExcluOurUser = {...onlinePeople};
-      delete onlinePeopleExcluOurUser[id];
+      const onlinePeopleExclOurUser = {...onlinePeople};
+      delete onlinePeopleExclOurUser[id];
+
+      console.log({onlinePeopleExclOurUser});
 
       const messagesWithoutDupes = uniqBy(messages, '_id');
 
     
       return (
         <div className="flex h-screen">
-          <div className="bg-white w-1/3 ">
-                <Logo/>
-            {Object.keys(onlinePeopleExcluOurUser).map((userId, index) => (
-              <div onClick={() => setSelectedUserId(userId)} className={"border-b border-gray-100 py-2 pl-4 flex items-center gap-2 cursor-pointer "+(userId === selecteduserId ? 'bg-blue-200' : '')} key={index}>
-                {userId === selecteduserId && (
-                    <div className="w-1 bg-blue-500 h-12 rounded-r-md"></div>
-                )}
-                    <div className="flex gap-2 py-2 pl-4 items-center">
-                    <Avatar online={true} username={onlinePeople[userId]} userId={userId} />
-                    <span className="text-gray-800">{onlinePeople[userId]}</span>
-                    </div>
-              </div>
-            ))}
+          <div className="bg-white w-1/3 flex flex-col">
+            <div className="flex-grow">
+            <Logo/>
+            {Object.keys(onlinePeopleExclOurUser).map(userId => (
+            <Contact
+              key={userId}
+              id={userId}
+              online={true}
+              username={onlinePeopleExclOurUser[userId]}
+              onClick={() => {setSelectedUserId(userId);console.log({userId})}}
+              selected={userId === selecteduserId} />
+          ))}
+
+            {Object.keys(offLinePeople).map(userId => (
+            <Contact
+              key={userId}
+              id={userId}
+              online={false}
+              username={offLinePeople[userId].username}
+              onClick={() => {setSelectedUserId(userId);console.log({userId})}}
+              selected={userId === selecteduserId} />
+          ))}
+
+            </div>
+            
+          <div className="p-2 text-center">
+                <button>logout</button>     
+          </div>
+
           </div>
           <div className="flex flex-col bg-blue-50 w-2/3 p-2">
             <div className="flex-grow">
@@ -170,4 +189,4 @@ export default function Chat() {
         </div>
       );
 
-            }
+}
